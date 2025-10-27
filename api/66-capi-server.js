@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const fetch = require('node-fetch'); // make sure node-fetch is in dependencies
+const fetch = require('node-fetch'); // make sure node-fetch is installed
 
 function hashData(data) {
   if (!data) return null;
@@ -9,15 +9,15 @@ function hashData(data) {
 module.exports = async (req, res) => {
   const allowedOrigin = 'https://clients.thekey.properties';
 
-  // === CORS headers ===
+  // --- CORS headers ---
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
-  // IMPORTANT: do NOT include Access-Control-Allow-Credentials
-  // res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // do NOT include Access-Control-Allow-Credentials
 
+  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    return res.status(200).end(); // preflight handled
+    return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
@@ -34,9 +34,10 @@ module.exports = async (req, res) => {
 
     const used_pixel_id = pixel_id || default_pixel_id;
 
-    // client IP
+    // Get client IP
     const client_ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
+    // Prepare hashed user data
     const prepared_user_data = {
       client_ip_address: client_ip,
       client_user_agent: hashData(user_data.user_agent || ''),
