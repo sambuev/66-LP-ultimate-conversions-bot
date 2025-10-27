@@ -1,14 +1,24 @@
-const crypto = require('crypto'); // Built-in Node module, no install needed
+const crypto = require('crypto'); // Built-in
 
-// Helper to hash with SHA-256 (Meta requirement for privacy/compliance in user data)
+// Helper to hash with SHA-256
 function hashData(data) {
   if (!data) return null;
   return crypto.createHash('sha256').update(data.toLowerCase().trim()).digest('hex');
 }
 
 module.exports = async (req, res) => {
+  // Enable CORS: Allow requests from your landing page origin (or '*' for any)
+  res.setHeader('Access-Control-Allow-Origin', 'https://clients.thekey.properties'); // Or '*' for all origins
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight OPTIONS request (required for CORS with fetch)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
-    console.error('Invalid method:', req.method); // For Vercel logs
+    console.error('Invalid method:', req.method);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -17,25 +27,25 @@ module.exports = async (req, res) => {
   const default_pixel_id = process.env.META_PIXEL_ID;
 
   if (!access_token) {
-    console.error('Access token not configured'); // Log for easy debugging
+    console.error('Access token not configured');
     return res.status(500).json({ error: 'Access token not configured' });
   }
 
   if (!event_name) {
-    console.error('Missing event_name in request body'); // Log for debugging
+    console.error('Missing event_name in request body');
     return res.status(400).json({ error: 'Missing event_name' });
   }
 
   const used_pixel_id = pixel_id || default_pixel_id;
 
-  // Get client IP from Vercel headers (for user_data hashing)
+  // Get client IP from Vercel headers
   const client_ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
-  // Prepare hashed user data (extendable for email/phone if forms collect them)
+  // Prepare hashed user data
   const prepared_user_data = {
     client_ip_address: client_ip,
     client_user_agent: hashData(user_data.user_agent),
-    fbp: user_data.fbp, // For event deduplication
+    fbp: user_data.fbp,
     fbc: user_data.fbc,
   };
 
@@ -62,14 +72,14 @@ module.exports = async (req, res) => {
 
     const result = await response.json();
     if (response.ok) {
-      console.log('CAPI event sent successfully:', event_name); // Success log
+      console.log('CAPI event sent successfully:', event_name);
       res.status(200).json({ success: true, result });
     } else {
-      console.error('Meta API error:', result); // Error log
+      console.error('Meta API error:', result);
       res.status(response.status).json({ error: result });
     }
   } catch (error) {
-    console.error('Function execution error:', error.message); // Catch-all log
+    console.error('Function execution error:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
