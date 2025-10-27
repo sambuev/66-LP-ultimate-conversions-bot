@@ -8,7 +8,7 @@ function hashData(data) {
 
 module.exports = async (req, res) => {
   // Enable CORS: Allow requests from your landing page origin (or '*' for any)
-  res.setHeader('Access-Control-Allow-Origin', 'https://clients.thekey.properties'); // Or '*' for all origins
+  res.setHeader('Access-Control-Allow-Origin', 'https://clients.thekey.properties'); // Or '*' for testing
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { event_name, user_data = {}, custom_data = {}, pixel_id } = req.body;
+  const { event_name, user_data = {}, custom_data = {}, pixel_id, test_event_code, event_id } = req.body;
   const access_token = process.env.META_ACCESS_TOKEN;
   const default_pixel_id = process.env.META_PIXEL_ID;
 
@@ -64,6 +64,8 @@ module.exports = async (req, res) => {
               event_source_url: req.headers.referer || 'unknown',
               user_data: prepared_user_data,
               custom_data,
+              test_event_code: test_event_code || undefined, // Forward if in test mode
+              event_id: event_id || undefined, // Forward for deduplication
             },
           ],
         }),
