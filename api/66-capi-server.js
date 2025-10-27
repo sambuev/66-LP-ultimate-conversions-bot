@@ -17,6 +17,11 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
+  // Silent handling for GET (e.g., health check or prefetch – no error log)
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'OK' });
+  }
+
   if (req.method !== 'POST') {
     console.error('Invalid method:', req.method);
     return res.status(405).json({ error: 'Method Not Allowed' });
