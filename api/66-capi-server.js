@@ -1,18 +1,18 @@
-import fetch from 'node-fetch';
-import crypto from 'crypto';
+const crypto = require('crypto');
+const fetch = require('node-fetch'); // make sure it's in dependencies
 
 function hashData(data) {
   if (!data) return null;
   return crypto.createHash('sha256').update(data.toLowerCase().trim()).digest('hex');
 }
 
-export default async function handler(req, res) {
-  // ---- CORS ----
+module.exports = async (req, res) => {
+  // ----- CORS -----
   const allowedOrigin = 'https://clients.thekey.properties';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Credentials', 'false');
+  // Do NOT set Access-Control-Allow-Credentials
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -22,15 +22,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const {
-    event_name,
-    user_data = {},
-    custom_data = {},
-    pixel_id,
-    test_event_code,
-    event_id
-  } = req.body;
-
+  const { event_name, user_data = {}, custom_data = {}, pixel_id, test_event_code, event_id } = req.body;
   const access_token = process.env.META_ACCESS_TOKEN;
   const default_pixel_id = process.env.META_PIXEL_ID;
 
@@ -38,13 +30,13 @@ export default async function handler(req, res) {
   if (!event_name) return res.status(400).json({ error: 'Missing event_name' });
 
   const used_pixel_id = pixel_id || default_pixel_id;
-  const client_ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection?.remoteAddress;
+  const client_ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
   const prepared_user_data = {
     client_ip_address: client_ip,
     client_user_agent: hashData(user_data.user_agent),
-    fbp: user_data.fbp,
-    fbc: user_data.fbc
+    fbp: user_data.fbp || null,
+    fbc: user_data.fbc || null,
   };
 
   const eventData = [
@@ -55,30 +47,33 @@ export default async function handler(req, res) {
       event_source_url: req.headers.referer || 'unknown',
       user_data: prepared_user_data,
       custom_data,
-      event_id: event_id || undefined
-    }
+      event_id: event_id || undefined,
+    },
   ];
 
   const payload = { data: eventData };
   if (test_event_code) payload.test_event_code = test_event_code;
 
   try {
-    const response = await fetch(`https://graph.facebook.com/v20.0/${used_pixel_id}/events?access_token=${access_token}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${used_pixel_id}/events?access_token=${access_token}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }
+    );
 
     const result = await response.json();
     if (response.ok) {
-      console.log('CAPI event sent successfully:', event_name);
-      return res.status(200).json({ success: true, result });
+      console.log('CAPI event sent:', event_name);
+      res.status(200).json({ success: true, result });
     } else {
       console.error('Meta API error:', result);
-      return res.status(response.status).json({ error: result });
+      res.status(response.status).json({ error: result });
     }
-  } catch (error) {
-    console.error('Function execution error:', error.message);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Function error:', err.message);
+    res.status(500).json({ error: err.message });
   }
-}
+};
