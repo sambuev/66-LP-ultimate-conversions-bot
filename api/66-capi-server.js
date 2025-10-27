@@ -1,7 +1,6 @@
-const fetch = require('node-fetch');
-const crypto = require('crypto');
+const crypto = require('crypto'); // Built-in Node module, no install needed
 
-// Helper to hash with SHA-256 (Meta requirement for user data)
+// Helper to hash with SHA-256 (Meta requirement for privacy/compliance in user data)
 function hashData(data) {
   if (!data) return null;
   return crypto.createHash('sha256').update(data.toLowerCase().trim()).digest('hex');
@@ -9,6 +8,7 @@ function hashData(data) {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
+    console.error('Invalid method:', req.method); // For Vercel logs
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -17,20 +17,25 @@ module.exports = async (req, res) => {
   const default_pixel_id = process.env.META_PIXEL_ID;
 
   if (!access_token) {
+    console.error('Access token not configured'); // Log for easy debugging
     return res.status(500).json({ error: 'Access token not configured' });
+  }
+
+  if (!event_name) {
+    console.error('Missing event_name in request body'); // Log for debugging
+    return res.status(400).json({ error: 'Missing event_name' });
   }
 
   const used_pixel_id = pixel_id || default_pixel_id;
 
-  // Get client IP from Vercel headers (for user_data)
-  const client_ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  // Get client IP from Vercel headers (for user_data hashing)
+  const client_ip = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
-  // Prepare hashed user data (add more if you collect email/phone in future)
+  // Prepare hashed user data (extendable for email/phone if forms collect them)
   const prepared_user_data = {
     client_ip_address: client_ip,
     client_user_agent: hashData(user_data.user_agent),
-    // fbp/fbc: Pass from client if available for dedup
-    fbp: user_data.fbp,
+    fbp: user_data.fbp, // For event deduplication
     fbc: user_data.fbc,
   };
 
@@ -57,11 +62,14 @@ module.exports = async (req, res) => {
 
     const result = await response.json();
     if (response.ok) {
+      console.log('CAPI event sent successfully:', event_name); // Success log
       res.status(200).json({ success: true, result });
     } else {
+      console.error('Meta API error:', result); // Error log
       res.status(response.status).json({ error: result });
     }
   } catch (error) {
+    console.error('Function execution error:', error.message); // Catch-all log
     res.status(500).json({ error: error.message });
   }
 };
