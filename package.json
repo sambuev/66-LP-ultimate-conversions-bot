@@ -1,3 +1,11 @@
-"dependencies": {
-  "node-fetch": "^2.6.7"
+{
+  "name": "meta-capi-vercel",
+  "version": "1.0.0",
+  "main": "api/66-capi-server.js",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "engines": {
+    "node": "18.x"
+  }
 }
