@@ -22,11 +22,13 @@ async function getFetch() {
 }
 
 module.exports = async (req, res) => {
-  // Always set CORS headers (no credentials)
-  const allowedOrigin = 'https://clients.thekey.properties'; // change if you have multiple origins
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+// Always set CORS headers at the very top
+const allowedOrigin = 'https://clients.thekey.properties';
+res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+// IMPORTANT: do NOT include Access-Control-Allow-Credentials if client is NOT sending credentials
+// res.setHeader('Access-Control-Allow-Credentials', 'true');  <-- REMOVE or comment out
 
   if (req.method === 'OPTIONS') {
     // preflight
