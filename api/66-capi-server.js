@@ -49,26 +49,35 @@ module.exports = async (req, res) => {
     fbc: user_data.fbc,
   };
 
+  // Prepare the event data array
+  const eventData = [
+    {
+      event_name,
+      event_time: Math.floor(Date.now() / 1000),
+      action_source: 'website',
+      event_source_url: req.headers.referer || 'unknown',
+      user_data: prepared_user_data,
+      custom_data,
+      event_id: event_id || undefined, // Forward for deduplication
+    },
+  ];
+
+  // Build root payload (test_event_code at root level)
+  const payload = {
+    data: eventData,
+  };
+
+  if (test_event_code) {
+    payload.test_event_code = test_event_code; // Add at root for test mode
+  }
+
   try {
     const response = await fetch(
       `https://graph.facebook.com/v20.0/${used_pixel_id}/events?access_token=${access_token}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: [
-            {
-              event_name,
-              event_time: Math.floor(Date.now() / 1000),
-              action_source: 'website',
-              event_source_url: req.headers.referer || 'unknown',
-              user_data: prepared_user_data,
-              custom_data,
-              test_event_code: test_event_code || undefined, // Forward if in test mode
-              event_id: event_id || undefined, // Forward for deduplication
-            },
-          ],
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
