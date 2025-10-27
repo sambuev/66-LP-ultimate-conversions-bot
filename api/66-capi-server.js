@@ -1,3 +1,6 @@
+// api/66-capi-server.js
+// Place this file in your Vercel project at: api/66-capi-server.js
+
 import crypto from 'crypto';
 
 // Helper to hash with SHA-256
@@ -9,7 +12,7 @@ function hashData(data) {
 export default async function handler(req, res) {
   const allowedOrigin = 'https://clients.thekey.properties';
   
-  // Set CORS headers - FIXED to allow all origins during testing
+  // Set CORS headers - allows requests from your domain
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -59,8 +62,7 @@ export default async function handler(req, res) {
                     req.headers['x-real-ip'] ||
                     req.socket.remoteAddress;
 
-  // Prepare user data - DON'T hash user_agent if it's already sent from client
-  // Meta expects either raw OR hashed, not double-hashed
+  // Prepare user data - send raw user_agent (don't hash)
   const prepared_user_data = {
     client_ip_address: client_ip,
     client_user_agent: user_data.user_agent || req.headers['user-agent'],
